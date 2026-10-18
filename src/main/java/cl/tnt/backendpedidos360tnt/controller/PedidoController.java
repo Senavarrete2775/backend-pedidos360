@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import cl.tnt.backendpedidos360tnt.publisher.PedidoEventPublisher;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,9 +23,11 @@ import java.util.Map;
 public class PedidoController {
 
     private final PedidoRepository pedidoRepository;
+    private final PedidoEventPublisher pedidoEventPublisher;
 
-    public PedidoController(PedidoRepository pedidoRepository) {
+    public PedidoController(PedidoRepository pedidoRepository, PedidoEventPublisher pedidoEventPublisher) {
         this.pedidoRepository = pedidoRepository;
+        this.pedidoEventPublisher = pedidoEventPublisher;
     }
 
     /**
@@ -99,11 +103,14 @@ public class PedidoController {
 
     /**
      * Crear nuevo pedido y guardarlo en la base de datos.
+     * Publica de forma asíncrona el evento en RabbitMQ (Indicador 3).
      */
     @PostMapping("/pedidos")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Pedido> crearPedido(@RequestBody Pedido pedido) {
         Pedido nuevo = pedidoRepository.save(pedido);
+        // Publicar evento asíncrono desacoplado
+        pedidoEventPublisher.publicarPedidoCreado(nuevo);
         return ResponseEntity.ok(nuevo);
     }
 }

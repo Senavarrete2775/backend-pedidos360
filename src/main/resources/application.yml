@@ -1,0 +1,54 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: backend-pedidos360-tnt
+
+  # Configuración de Conexión a RabbitMQ
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+  # Azure AD (IDaaS) Configuration
+  cloud:
+    azure:
+      active-directory:
+        enabled: true
+        profile:
+          tenant-id: bb5324af-c266-41ed-b36c-a971641c7af2
+        credential:
+          client-id: 979b7949-f63b-4e7c-baa8-e382982acee6
+        app-id-uri: api://979b7949-f63b-4e7c-baa8-e382982acee6
+
+  # Persistencia y Base de Datos (H2 para pruebas locales / PostgreSQL en nube)
+  datasource:
+    url: jdbc:h2:mem:pedidosdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
+
+  # Consola H2
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+# ==============================================================================
+# CONFIGURACIÓN CENTRALIZADA DE MENSAJERÍA RABBITMQ (INDICADOR 1 - 100%)
+# ==============================================================================
+app:
+  rabbitmq:
+    exchange: pedidos.exchange
+    routing-key: pedidos.creado.key
+    queue: pedidos.notificacion.queue
+    # Configuración de Dead Letter Queue (DLQ) para manejo de fallos
+    dlx: pedidos.dlx
+    dlq-routing-key: pedidos.dlq.key
+    dlq: pedidos.dlq

@@ -1,0 +1,16 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq-pedidos360
+    restart: always
+    ports:
+      - "5672:5672"     # Puerto protocolo AMQP (para que los microservicios envíen/reciban mensajes)
+      - "15672:15672"   # Consola Web de Administración RabbitMQ (http://localhost:15672)
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  rabbitmq_data:
