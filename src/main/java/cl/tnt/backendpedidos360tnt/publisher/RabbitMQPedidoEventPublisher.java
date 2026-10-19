@@ -8,11 +8,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-/**
- * Implementación del publicador de eventos asíncronos mediante RabbitMQ.
- * Cumple con el Indicador 3: Los servicios y controladores de negocio solo
- * consumen esta interfaz sin conocer detalles de configuración de colas.
- */
+
 @Service
 public class RabbitMQPedidoEventPublisher implements PedidoEventPublisher {
 

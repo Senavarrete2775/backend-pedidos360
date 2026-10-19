@@ -3,9 +3,7 @@ package cl.tnt.backendpedidos360tnt.dto;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-/**
- * DTO para transferir eventos asíncronos de pedidos a través de RabbitMQ.
- */
+
 public class PedidoEventDTO implements Serializable {
 
     private static final long serialVersionUID = 1L;

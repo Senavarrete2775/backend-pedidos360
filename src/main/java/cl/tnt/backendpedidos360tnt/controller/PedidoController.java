@@ -30,9 +30,7 @@ public class PedidoController {
         this.pedidoEventPublisher = pedidoEventPublisher;
     }
 
-    /**
-     * Endpoint público: permite probar conectividad sin requerir token JWT.
-     */
+
     @GetMapping("/public/status")
     public ResponseEntity<Map<String, Object>> estadoServicio() {
         Map<String, Object> response = new HashMap<>();
@@ -43,10 +41,7 @@ public class PedidoController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Endpoint protegido: Requiere token JWT válido de Azure AD.
-     * Retorna los pedidos desde la base de datos y la información del usuario autenticado.
-     */
+
     @GetMapping("/pedidos")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> obtenerPedidos(@AuthenticationPrincipal Jwt jwt) {
@@ -75,10 +70,7 @@ public class PedidoController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Endpoint con autorización por ROL / SCOPE estricto:
-     * Demuestra cumplimiento del Indicador 2 ("Aplica autorización por rol cuando corresponde").
-     */
+
     @GetMapping("/pedidos/admin")
     @PreAuthorize("hasAuthority('APPROLE_Admin') or hasAuthority('SCOPE_OT.Create')")
     public ResponseEntity<Map<String, Object>> panelAdministrador(@AuthenticationPrincipal Jwt jwt) {
@@ -101,10 +93,7 @@ public class PedidoController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Crear nuevo pedido y guardarlo en la base de datos.
-     * Publica de forma asíncrona el evento en RabbitMQ (Indicador 3).
-     */
+
     @PostMapping("/pedidos")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Pedido> crearPedido(@RequestBody Pedido pedido) {
