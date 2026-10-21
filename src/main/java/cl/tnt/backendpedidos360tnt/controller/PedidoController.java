@@ -97,7 +97,6 @@ public class PedidoController {
     @PostMapping("/pedidos")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> crearPedido(@RequestBody Pedido pedido) {
-        // Validaciones de negocio: Evitar crear pedidos inválidos o con montos negativos/cero
         if (pedido.getCliente() == null || pedido.getCliente().trim().isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "El nombre del cliente es obligatorio."));
         }
@@ -113,7 +112,6 @@ public class PedidoController {
         }
 
         Pedido nuevo = pedidoRepository.save(pedido);
-        // Publicar evento asíncrono desacoplado a RabbitMQ
         pedidoEventPublisher.publicarPedidoCreado(nuevo);
         return ResponseEntity.ok(nuevo);
     }
@@ -131,7 +129,6 @@ public class PedidoController {
     @PostMapping("/pedidos/simular-error-dlq")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> simularFalloDLQ() {
-        // Emite un evento inválido directo a RabbitMQ para activar basicNack y DLQ sin ensuciar la base de datos
         PedidoEventDTO eventoFallido = new PedidoEventDTO(
                 999L,
                 "Cliente Demostración DLQ",

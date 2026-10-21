@@ -43,7 +43,6 @@ public class RabbitMQPedidoEventPublisher implements PedidoEventPublisher {
 
     @Override
     public void publicarEvento(PedidoEventDTO evento) {
-        // Ejecución en hilo separado para que no bloquee ni congele la petición HTTP del usuario
         CompletableFuture.runAsync(() -> {
             try {
                 log.info("Publicando evento asíncrono a RabbitMQ [Exchange: '{}', RoutingKey: '{}']: {}",
