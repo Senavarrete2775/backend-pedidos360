@@ -8,6 +8,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class RabbitMQPedidoEventPublisher implements PedidoEventPublisher {
@@ -42,14 +43,16 @@ public class RabbitMQPedidoEventPublisher implements PedidoEventPublisher {
 
     @Override
     public void publicarEvento(PedidoEventDTO evento) {
-        try {
-            log.info("Publicando evento asíncrono a RabbitMQ [Exchange: '{}', RoutingKey: '{}']: {}",
-                    exchange, routingKey, evento);
-            rabbitTemplate.convertAndSend(exchange, routingKey, evento);
-            log.info("Evento publicado exitosamente para pedido ID={}", evento.getId());
-        } catch (Exception e) {
-            log.error("Error al publicar evento de pedido en RabbitMQ: {}", e.getMessage(), e);
-            // No interrumpe la transacción del negocio, garantizando tolerancia a fallos
-        }
+        // Ejecución en hilo separado para que no bloquee ni congele la petición HTTP del usuario
+        CompletableFuture.runAsync(() -> {
+            try {
+                log.info("Publicando evento asíncrono a RabbitMQ [Exchange: '{}', RoutingKey: '{}']: {}",
+                        exchange, routingKey, evento);
+                rabbitTemplate.convertAndSend(exchange, routingKey, evento);
+                log.info("Evento publicado exitosamente para pedido ID={}", evento.getId());
+            } catch (Exception e) {
+                log.error("Error al publicar evento de pedido en RabbitMQ: {}", e.getMessage(), e);
+            }
+        });
     }
 }
