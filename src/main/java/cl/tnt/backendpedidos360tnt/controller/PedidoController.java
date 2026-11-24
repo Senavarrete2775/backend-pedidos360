@@ -27,11 +27,11 @@ import java.util.Map;
 public class PedidoController {
 
     private final PedidoRepository pedidoRepository;
-    private final PedidoEventPublisher pedidoEventPublisher;
+    private final List<PedidoEventPublisher> pedidoEventPublishers;
 
-    public PedidoController(PedidoRepository pedidoRepository, PedidoEventPublisher pedidoEventPublisher) {
+    public PedidoController(PedidoRepository pedidoRepository, List<PedidoEventPublisher> pedidoEventPublishers) {
         this.pedidoRepository = pedidoRepository;
-        this.pedidoEventPublisher = pedidoEventPublisher;
+        this.pedidoEventPublishers = pedidoEventPublishers;
     }
 
     @GetMapping("/public/status")
@@ -112,7 +112,7 @@ public class PedidoController {
         }
 
         Pedido nuevo = pedidoRepository.save(pedido);
-        pedidoEventPublisher.publicarPedidoCreado(nuevo);
+        pedidoEventPublishers.forEach(p -> p.publicarPedidoCreado(nuevo));
         return ResponseEntity.ok(nuevo);
     }
 
@@ -138,12 +138,12 @@ public class PedidoController {
                 LocalDateTime.now(),
                 "PEDIDO_FALLIDO"
         );
-        pedidoEventPublisher.publicarEvento(eventoFallido);
+        pedidoEventPublishers.forEach(p -> p.publicarEvento(eventoFallido));
 
         Map<String, Object> resp = new HashMap<>();
         resp.put("status", "OK");
-        resp.put("mensaje", "Evento con monto negativo (-$1.0) enviado a RabbitMQ. El consumidor 'ms-notificaciones' activará basicNack y lo enviará a la DLQ (pedidos.dlq).");
-        resp.put("exchange", "pedidos.exchange");
+        resp.put("mensaje", "Evento con monto negativo (-$1.0) enviado a RabbitMQ y Kafka. Los consumidores de 'ms-notificaciones' harán basicNack y el mensaje irá a las DLQ (pedidos.notificacion.dlq, pedidos.ticket.dlq y pedidos.auditoria.dlq).");
+        resp.put("exchanges", List.of("pedidos.exchange (topic)", "tickets.exchange (direct)"));
         resp.put("evento", eventoFallido);
         return ResponseEntity.ok(resp);
     }
