@@ -1,0 +1,94 @@
+# Nodo de APLICACIÓN: PostgreSQL + backend + microservicios + frontend + proxy HTTPS.
+# Los repositorios deben estar clonados uno junto al otro:
+#   <carpeta>/backend-pedidos360, ms-notificaciones, ms-rabbit-admin, ms-kafka-admin, frontend-pedidos360
+# Uso:  cp .env.example .env   (editar)   y luego   docker compose -f docker-compose.app.yml up -d --build
+x-java: &java-service
+  restart: always
+  environment: &java-env
+    JAVA_OPTS: "-Xms128m -Xmx256m -Djava.security.egd=file:/dev/./urandom"
+    RABBITMQ_ADDRESSES: ${MESSAGING_HOST:?Defina MESSAGING_HOST en .env}:5672,${MESSAGING_HOST}:5673
+    RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-guest}
+    RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+    KAFKA_BOOTSTRAP_SERVERS: ${MESSAGING_HOST}:9092,${MESSAGING_HOST}:9093,${MESSAGING_HOST}:9094
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: pedidosdb
+      POSTGRES_USER: ${DB_USERNAME:-pedidos}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pedidos}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-pedidos} -d pedidosdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    <<: *java-service
+    build: ..                       # backend-pedidos360
+    container_name: backend-pedidos360
+    ports:
+      - "8080:8080"                 # destino del API Gateway
+    environment:
+      <<: *java-env
+      DB_URL: jdbc:postgresql://postgres:5432/pedidosdb
+      DB_USERNAME: ${DB_USERNAME:-pedidos}
+      DB_PASSWORD: ${DB_PASSWORD:-pedidos}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ms-notificaciones:
+    <<: *java-service
+    build: ../../ms-notificaciones
+    container_name: ms-notificaciones
+    ports:
+      - "8081:8081"
+
+  ms-rabbit-admin:
+    <<: *java-service
+    build: ../../ms-rabbit-admin
+    container_name: ms-rabbit-admin   # accesible solo vía Caddy en /rabbit-admin
+
+  ms-kafka-admin:
+    <<: *java-service
+    build: ../../ms-kafka-admin
+    container_name: ms-kafka-admin
+    ports:
+      - "8083:8083"
+
+  frontend:
+    build:
+      context: ../../frontend-pedidos360
+      args:
+        API_BASE_URL: ${API_BASE_URL:?Defina API_BASE_URL en .env}
+        RABBIT_ADMIN_URL: https://${PUBLIC_HOST:?Defina PUBLIC_HOST en .env}/rabbit-admin
+        KAFKA_ADMIN_URL: https://${PUBLIC_HOST}/kafka-admin
+        NOTIFICACIONES_URL: https://${PUBLIC_HOST}/notificaciones
+        REDIRECT_URI: https://${PUBLIC_HOST}
+    container_name: frontend-pedidos360
+    restart: always
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - frontend
+      - ms-rabbit-admin
+
+volumes:
+  postgres_data:
+  caddy_data:

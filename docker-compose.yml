@@ -1,16 +1,22 @@
+# Solo PostgreSQL. RabbitMQ y Kafka están en backend-pedidos360/infra/
 services:
-  rabbitmq:
-    image: rabbitmq:3.13-management
-    container_name: rabbitmq-pedidos360
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-pedidos360
     restart: always
     ports:
-      - "5672:5672"     # Puerto protocolo AMQP (para que los microservicios envíen/reciban mensajes)
-      - "15672:15672"   # Consola Web de Administración RabbitMQ (http://localhost:15672)
+      - "5433:5432"   # 5433 en el host: evita choque con un PostgreSQL instalado en Windows
     environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
+      POSTGRES_DB: pedidosdb
+      POSTGRES_USER: ${DB_USERNAME:-pedidos}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pedidos}
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-pedidos} -d pedidosdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  rabbitmq_data:
+  postgres_data:

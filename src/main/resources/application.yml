@@ -7,46 +7,74 @@ spring:
 
 
   rabbitmq:
+    # Clúster: si cae un nodo, el cliente se conecta al otro
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672,localhost:5673}
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
 
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092,localhost:9093,localhost:9094}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all                 # confirmación de todas las réplicas sincronizadas
+      retries: 3
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 15000
+        request.timeout.ms: 5000
+        max.block.ms: 5000
+        linger.ms: 5
+        spring.json.add.type.headers: false
+
   cloud:
     azure:
       active-directory:
         enabled: true
         profile:
-          tenant-id: bb5324af-c266-41ed-b36c-a971641c7af2
+          tenant-id: ${AZURE_TENANT_ID:bb5324af-c266-41ed-b36c-a971641c7af2}
         credential:
-          client-id: 979b7949-f63b-4e7c-baa8-e382982acee6
-        app-id-uri: api://979b7949-f63b-4e7c-baa8-e382982acee6
+          client-id: ${AZURE_API_CLIENT_ID:979b7949-f63b-4e7c-baa8-e382982acee6}
+        app-id-uri: api://${AZURE_API_CLIENT_ID:979b7949-f63b-4e7c-baa8-e382982acee6}
 
 
   datasource:
-    url: jdbc:h2:mem:pedidosdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
-    password: ""
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/pedidosdb}
+    username: ${DB_USERNAME:pedidos}
+    password: ${DB_PASSWORD:pedidos}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: ${JPA_SHOW_SQL:false}
     open-in-view: false
-
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
 
 
 app:
   rabbitmq:
-    exchange: pedidos.exchange
-    routing-key: pedidos.creado.key
-    queue: pedidos.notificacion.queue
-
-    dlx: pedidos.dlx
-    dlq-routing-key: pedidos.dlq.key
-    dlq: pedidos.dlq
+    exchanges:
+      pedidos: pedidos.exchange          # topic
+      tickets: tickets.exchange          # direct
+      dlx: pedidos.dlx                   # direct (Dead Letter Exchange)
+    queues:
+      notificacion: pedidos.notificacion.queue
+      ticket: pedidos.ticket.queue
+      auditoria: pedidos.auditoria.queue
+    dlqs:
+      notificacion: pedidos.notificacion.dlq
+      ticket: pedidos.ticket.dlq
+      auditoria: pedidos.auditoria.dlq
+    routing-keys:
+      pedido-creado: pedidos.creado.key
+      ticket: ticket.generar
+      auditoria: pedidos.#
+      dlq-notificacion: dlq.notificacion
+      dlq-ticket: dlq.ticket
+      dlq-auditoria: dlq.auditoria
+  kafka:
+    topics:
+      eventos: pedidos.eventos     # flujo de eventos de pedidos (retención 7 días)
+      estado: pedidos.estado       # último estado por pedido (compactado)
