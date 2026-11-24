@@ -1,0 +1,57 @@
+# Clúster RabbitMQ de 2 nodos (rabbit1 + rabbit2)
+#   docker compose -f docker-compose.rabbitmq.yml up -d
+# Consola nodo 1: http://localhost:15672   Consola nodo 2: http://localhost:15673
+x-rabbit-common: &rabbit-common
+  image: rabbitmq:3.13-management
+  restart: always
+  environment: &rabbit-env
+    RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:-pedidos360-secret-cookie}
+    RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-guest}
+    RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+  networks:
+    - rabbit-net
+  healthcheck:
+    test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+    interval: 15s
+    timeout: 10s
+    retries: 10
+
+services:
+  rabbit1:
+    <<: *rabbit-common
+    container_name: rabbit1
+    hostname: rabbit1
+    environment:
+      <<: *rabbit-env
+      RABBITMQ_NODENAME: rabbit@rabbit1
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbit1_data:/var/lib/rabbitmq
+      - ./rabbitmq/cluster.conf:/etc/rabbitmq/conf.d/20-cluster.conf:ro
+
+  rabbit2:
+    <<: *rabbit-common
+    container_name: rabbit2
+    hostname: rabbit2
+    environment:
+      <<: *rabbit-env
+      RABBITMQ_NODENAME: rabbit@rabbit2
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    volumes:
+      - rabbit2_data:/var/lib/rabbitmq
+      - ./rabbitmq/cluster.conf:/etc/rabbitmq/conf.d/20-cluster.conf:ro
+    depends_on:
+      rabbit1:
+        condition: service_healthy
+
+networks:
+  rabbit-net:
+    name: rabbit-net
+
+volumes:
+  rabbit1_data:
+  rabbit2_data:

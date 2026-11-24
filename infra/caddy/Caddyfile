@@ -1,0 +1,23 @@
+# HTTPS automático (Let's Encrypt). PUBLIC_HOST = dominio público, ej: 3-90-12-34.nip.io
+# Si Let's Encrypt falla (límite de nip.io), añadir "tls internal" dentro del bloque para usar un certificado propio.
+{$PUBLIC_HOST} {
+    encode gzip
+
+    # El administrador de RabbitMQ se expone por el mismo dominio (evita contenido mixto http/https)
+    handle_path /rabbit-admin/* {
+        reverse_proxy ms-rabbit-admin:8082
+    }
+
+    # Administrador de Kafka y consultas de ms-notificaciones, también por el mismo dominio
+    handle_path /kafka-admin/* {
+        reverse_proxy ms-kafka-admin:8083
+    }
+
+    handle_path /notificaciones/* {
+        reverse_proxy ms-notificaciones:8081
+    }
+
+    handle {
+        reverse_proxy frontend:4000
+    }
+}
