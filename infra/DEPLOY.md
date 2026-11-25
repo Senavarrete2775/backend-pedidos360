@@ -2,7 +2,7 @@
 
 | Instancia | Tipo sugerido | Contenido | Compose |
 |---|---|---|---|
-| `pedidos-mensajeria` | t3.large (8 GB) | RabbitMQ (2 nodos), Kafka (3 brokers + Zookeeper), Kafka-UI | `docker-compose.rabbitmq.yml`, `docker-compose.kafka.yml`, `docker-compose.kafka-ui.yml` |
+| `pedidos-mensajeria` | t3.large (8 GB) | RabbitMQ (2 nodos), Kafka (3 brokers + 3 Zookeeper), Kafka-UI | `docker-compose.rabbitmq.yml`, `docker-compose.kafka.yml`, `docker-compose.kafka-ui.yml` |
 | `pedidos-app` | t3.medium (4 GB) | PostgreSQL, backend, 3 microservicios, frontend, Caddy (HTTPS) | `docker-compose.app.yml` |
 
 Learner Lab suele limitar los tipos a nano..large. Ambas con Ubuntu 22.04, 30 GB de disco.
