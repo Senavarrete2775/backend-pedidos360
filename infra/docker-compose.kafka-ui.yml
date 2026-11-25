@@ -10,7 +10,7 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: pedidos360
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka1:29092,kafka2:29092,kafka3:29092
-      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper1:2181,zookeeper2:2181,zookeeper3:2181
       DYNAMIC_CONFIG_ENABLED: "true"
     networks:
       - kafka-net

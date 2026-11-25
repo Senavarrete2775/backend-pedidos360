@@ -1,17 +1,33 @@
-# Kafka con Zookeeper y 3 brokers (permite tópicos con 3 réplicas)
+# Kafka con 3 nodos Zookeeper (ensemble, quórum 2 de 3) y 3 brokers (permite tópicos con 3 réplicas)
 #   docker compose -f docker-compose.kafka.yml up -d
 # Desde el host (apps Spring):  localhost:9092,localhost:9093,localhost:9094
 # En la nube define KAFKA_EXTERNAL_HOST con la IP/DNS público de la EC2.
+x-zk-common: &zk-common
+  image: confluentinc/cp-zookeeper:7.6.1
+  restart: always
+  networks:
+    - kafka-net
+
+x-zk-env: &zk-env
+  ZOOKEEPER_CLIENT_PORT: 2181
+  ZOOKEEPER_TICK_TIME: 2000
+  ZOOKEEPER_INIT_LIMIT: 5
+  ZOOKEEPER_SYNC_LIMIT: 2
+  ZOOKEEPER_SERVERS: zookeeper1:2888:3888;zookeeper2:2888:3888;zookeeper3:2888:3888
+  KAFKA_HEAP_OPTS: "-Xms256m -Xmx256m"
+
 x-kafka-common: &kafka-common
   image: confluentinc/cp-kafka:7.6.1
   restart: always
   networks:
     - kafka-net
   depends_on:
-    - zookeeper
+    - zookeeper1
+    - zookeeper2
+    - zookeeper3
 
 x-kafka-env: &kafka-env
-  KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  KAFKA_ZOOKEEPER_CONNECT: zookeeper1:2181,zookeeper2:2181,zookeeper3:2181
   KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
   KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
   KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
@@ -25,16 +41,26 @@ x-kafka-env: &kafka-env
   KAFKA_HEAP_OPTS: "-Xms384m -Xmx384m"
 
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.1
-    container_name: zookeeper
-    restart: always
+  zookeeper1:
+    <<: *zk-common
+    container_name: zookeeper1
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-      KAFKA_HEAP_OPTS: "-Xms256m -Xmx256m"
-    networks:
-      - kafka-net
+      <<: *zk-env
+      ZOOKEEPER_SERVER_ID: 1
+
+  zookeeper2:
+    <<: *zk-common
+    container_name: zookeeper2
+    environment:
+      <<: *zk-env
+      ZOOKEEPER_SERVER_ID: 2
+
+  zookeeper3:
+    <<: *zk-common
+    container_name: zookeeper3
+    environment:
+      <<: *zk-env
+      ZOOKEEPER_SERVER_ID: 3
 
   kafka1:
     <<: *kafka-common
